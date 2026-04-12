@@ -120,7 +120,7 @@ const renderDeals = deals => {
     const isFav = getFavorites().includes(deal.uuid);
     return `
       <div class="deal-item" id="${deal.uuid}">
-        <span class="deal-id">${deal.id}</span>
+        <img src="${deal.photo}" alt="${deal.title}" style="width:80px; height:80px; object-fit:cover; border-radius:8px;">
         <a href="${deal.link}" target="_blank" class="deal-link">${deal.title}</a>
         <span class="deal-price">${deal.price} €</span>
         ${pct > 0 ? `<span class="deal-discount">-${pct}%</span>` : ''}
@@ -201,6 +201,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   setCurrentDeals(deals);
   render(currentDeals, currentPagination);
+
+  if (selectLegoSetIds.value) {
+    selectLegoSetIds.dispatchEvent(new Event('change'));
+  }
 });
 
 
@@ -331,7 +335,7 @@ document.querySelector('#sort-select').addEventListener('change', (event) => {
  */
 const fetchSales = async (id) => {
   try {
-    const response = await fetch(`https://server-gamma-black-13.vercel.app/sales/search?legoSetId=${id}`);
+    const response = await fetch(`https://lego-api-blue.vercel.app/sales?id=${id}`);
     const body = await response.json();
     if (body.success !== true) {
       console.error(body);
@@ -397,8 +401,8 @@ selectLegoSetIds.addEventListener('change', async (event) => {
 
   // ← add here
   const dates = sales.map(s => s.published).sort((a, b) => a - b);
-  const lifetime = dates.length > 1 
-    ? Math.ceil((dates[dates.length - 1] - dates[0]) / (1000 * 60 * 60 * 24))
+  const lifetime = dates.length > 1
+    ? Math.ceil((dates[dates.length - 1] - dates[0]) / (60 * 60 * 24))
     : 0;
   document.querySelector('#lifetime').innerHTML = lifetime + ' days';
 });

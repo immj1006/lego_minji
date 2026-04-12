@@ -2,10 +2,10 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
-
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,7 +24,32 @@ app.get('/', (request, response) => {
   response.send({'ack': true});
 });
 
+// GET /deals - Fetch paginated deals
+app.get('/deals', (request, response) => {
+  try {
+    const page = parseInt(request.query.page) || 1;
+    const size = parseInt(request.query.size) || 6;
+    const start = (page - 1) * size;
+    const end = start + size;
+    const result = DEALS.slice(start, end);
 
+    return response.status(200).json({
+      success: true,
+      data: {
+        result,
+        meta: {
+          currentPage: page,
+          pageCount: Math.ceil(DEALS.length / size),
+          pageSize: size,
+          count: DEALS.length
+        }
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    return response.status(500).json({ success: false });
+  }
+});
 
 // GET /deals/search - Search deals with filters
 app.get('/deals/search', (request, response) => {
@@ -42,16 +67,16 @@ app.get('/deals/search', (request, response) => {
     const dateTs = new Date(date).getTime() / 1000;
     results = results.filter(d => d.published >= dateTs);
   }
-
-  // Filter by specific values
+// Filter by specific values
+  
   if (filterBy === 'best-discount') {
     results = results.sort((a, b) => b.discount - a.discount);
   } else if (filterBy === 'most-commented') {
     results = results.sort((a, b) => (b.comments || 0) - (a.comments || 0));
   } else if (filterBy === 'hot-deals') {
+    // Default: sort by price ascending
     results = results.sort((a, b) => (b.temperature || 0) - (a.temperature || 0));
   } else {
-    // Default: sort by price ascending
     results = results.sort((a, b) => a.price - b.price);
   }
 
@@ -76,7 +101,6 @@ app.get('/deals/:id', (request, response) => {
   return response.status(200).json({ 'success': true, 'data': deal });
 });
 
-
 // GET /sales/search - Search vinted sales
 app.get('/sales/search', (request, response) => {
   try {
@@ -97,15 +121,15 @@ app.get('/sales/search', (request, response) => {
   }
 });
 
-app.listen(PORT, () => {
-  // Load deals
+app.listen(PORT, async () => {
+  // Load deals from JSON
   try {
     DEALS = JSON.parse(
       readFileSync(path.join(__dirname, 'deals.json'), 'utf8')
     );
     console.log(`✅ Loaded ${DEALS.length} deals`);
-  } catch (error) {
-    console.warn(`⚠️  Could not load deals.json: ${error}`);
+  } catch (error) { 
+    console.warn(`⚠️ Could not load deals.json: ${error}`);
   }
 
   // Load sales
@@ -114,8 +138,8 @@ app.listen(PORT, () => {
       readFileSync(path.join(__dirname, 'sources', 'vinted.json'), 'utf8')
     );
     console.log(`✅ Loaded sales`);
-  } catch (error) {
-    console.warn(`⚠️  ${error}`);
+  } catch (error) { 
+    console.warn(`⚠️ ${error}`);
   }
 });
 

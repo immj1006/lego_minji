@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C d:/lego_minji_backup show 59c5e6b --name-only)"
+    ]
+  }
+}
