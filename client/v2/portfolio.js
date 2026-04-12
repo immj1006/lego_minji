@@ -53,20 +53,51 @@ const setCurrentDeals = ({result, meta}) => {
  */
 const fetchDeals = async (page = 1, size = 6) => {
   try {
-    const response = await fetch(
-      `https://lego-api-blue.vercel.app/deals?page=${page}&size=${size}`
-    );
+    const url = `https://lego-api-blue.vercel.app/deals?page=${page}&size=${size}`;
+    console.log('fetchDeals url:', url);
+    const response = await fetch(url);
     const body = await response.json();
+    console.log('fetchDeals response:', body);
 
     if (body.success !== true) {
-      console.error(body);
-      return {currentDeals, currentPagination};
+      console.error('fetchDeals failed:', body);
+      return {result: [], meta: {currentPage: 1, pageCount: 1, count: 0}};
     }
 
-    return body.data;
+    const data = body.data ?? body;
+
+    if (Array.isArray(data)) {
+      return {
+        result: data,
+        meta: {currentPage: 1, pageCount: 1, count: data.length}
+      };
+    }
+
+    if (data.result && data.meta) {
+      return data;
+    }
+
+    if (data.deals && data.pagination) {
+      return {
+        result: data.deals,
+        meta: data.pagination
+      };
+    }
+
+    if (data.result) {
+      return {
+        result: data.result,
+        meta: data.meta || {currentPage: 1, pageCount: 1, count: data.result.length}
+      };
+    }
+
+    return {
+      result: Array.isArray(data) ? data : [],
+      meta: {currentPage: 1, pageCount: 1, count: Array.isArray(data) ? data.length : 0}
+    };
   } catch (error) {
     console.error(error);
-    return {currentDeals, currentPagination};
+    return {result: [], meta: {currentPage: 1, pageCount: 1, count: 0}};
   }
 };
 
@@ -74,17 +105,18 @@ const fetchDeals = async (page = 1, size = 6) => {
  * Render list of deals
  * @param  {Array} deals
  */
+
+
 const renderDeals = deals => {
-  const template = deals.map(deal => {
-    // FIX: Determine if we need to multiply by 100
-    // If deal.discount is 25, it's already 25%. If it's 0.25, we multiply.
+  const safeDeals = Array.isArray(deals) ? deals : [];
+  const template = safeDeals.length > 0 ? safeDeals.map(deal => {
     let pct = 0;
     if (deal.discount) {
-        pct = deal.discount > 1 ? Math.round(deal.discount) : Math.round(deal.discount * 100);
+      pct = deal.discount > 1 ? Math.round(deal.discount) : Math.round(deal.discount * 100);
     } else if (deal.msrp && deal.price) {
-        pct = Math.round(((deal.msrp - deal.price) / deal.msrp) * 100);
+      pct = Math.round(((deal.msrp - deal.price) / deal.msrp) * 100);
     }
-    
+
     const isFav = getFavorites().includes(deal.uuid);
     return `
       <div class="deal-item" id="${deal.uuid}">
@@ -95,7 +127,7 @@ const renderDeals = deals => {
         <span class="deal-favorite" onclick="toggleFavorite('${deal.uuid}')">⭐</span>
       </div>
     `;
-  }).join('');
+  }).join('') : '<div class="deal-item"><span>No deals available</span></div>';
 
   document.querySelector('#deals').innerHTML = '<h2>💎 Deals</h2>' + template;
 };
@@ -105,14 +137,17 @@ const renderDeals = deals => {
  * @param  {Object} pagination
  */
 const renderPagination = pagination => {
-  const {currentPage, pageCount} = pagination;
+  const currentPage = parseInt(pagination?.currentPage, 10) || 1;
+  const pageCount = parseInt(pagination?.pageCount, 10) || 1;
   const options = Array.from(
-    {'length': pageCount},
+    {length: pageCount},
     (value, index) => `<option value="${index + 1}">${index + 1}</option>`
   ).join('');
 
   selectPage.innerHTML = options;
-  selectPage.selectedIndex = currentPage - 1;
+  if (selectPage.options.length > 0) {
+    selectPage.selectedIndex = Math.min(currentPage - 1, selectPage.options.length - 1);
+  }
 };
 
 /**
@@ -139,11 +174,13 @@ const renderIndicators = pagination => {
 };
 
 const render = (deals, pagination) => {
+  console.log('render called:', {dealsLength: Array.isArray(deals) ? deals.length : 0, pagination});
   const processedDeals = getProcessedDeals(deals);
-  renderDeals(processedDeals);  // ← fix: use processedDeals
+  console.log('render processedDeals length:', processedDeals.length);
+  renderDeals(processedDeals);
   renderPagination(pagination);
   renderIndicators(pagination);
-  renderLegoSetIds(deals);
+  renderLegoSetIds(Array.isArray(deals) ? deals : []);
 };
 
 
@@ -294,7 +331,7 @@ document.querySelector('#sort-select').addEventListener('change', (event) => {
  */
 const fetchSales = async (id) => {
   try {
-    const response = await fetch(`https://lego-api-blue.vercel.app/sales?id=${id}`);
+    const response = await fetch(`https://server-gamma-black-13.vercel.app/sales/search?legoSetId=${id}`);
     const body = await response.json();
     if (body.success !== true) {
       console.error(body);
