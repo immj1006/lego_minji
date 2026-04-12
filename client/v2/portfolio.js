@@ -87,17 +87,17 @@ const renderDeals = deals => {
     
     const isFav = getFavorites().includes(deal.uuid);
     return `
-      <div class="deal" id="${deal.uuid}">
-        <span>${deal.id}</span>
-        <a href="${deal.link}" target="_blank">${deal.title}</a>
-        <strong>${deal.price} €</strong>
-        ${pct > 0 ? `<span style="color: #28a745; font-weight: bold; margin-left: 10px;">-${pct}%</span>` : ''}
-        <button onclick="toggleFavorite('${deal.uuid}')">⭐</button>
+      <div class="deal-item" id="${deal.uuid}">
+        <span class="deal-id">${deal.id}</span>
+        <a href="${deal.link}" target="_blank" class="deal-link">${deal.title}</a>
+        <span class="deal-price">${deal.price} €</span>
+        ${pct > 0 ? `<span class="deal-discount">-${pct}%</span>` : ''}
+        <span class="deal-favorite" onclick="toggleFavorite('${deal.uuid}')">⭐</span>
       </div>
     `;
   }).join('');
 
-  document.querySelector('#deals').innerHTML = '<h2>Deals</h2>' + template;
+  document.querySelector('#deals').innerHTML = '<h2>💎 Deals</h2>' + template;
 };
 
 /**
@@ -310,9 +310,9 @@ const fetchSales = async (id) => {
 
 const renderSales = (sales) => {
   const template = sales.map(sale => `
-    <div class="sale">
-      <a href="${sale.link}" target="_blank">${sale.title}</a>
-      <strong>${sale.price.amount} €</strong>
+    <div class="sales-item">
+      <a href="${sale.link}" target="_blank" class="sales-item-title">${sale.title}</a>
+      <div class="sales-item-price">${sale.price.amount} €</div>
     </div>
   `).join('');
 
